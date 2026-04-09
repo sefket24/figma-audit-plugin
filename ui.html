@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --border: #E5E5E5;
+    --blue: #18A0FB;
+    --blue-hover: #0D8DE1;
+    --text-primary: #333333;
+    --text-secondary: #8B8B8B;
+  }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    margin: 0;
+    padding: 16px;
+    background-color: var(--bg);
+    color: var(--text-primary);
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  h2 { 
+    margin: 0; 
+    font-size: 14px; 
+    font-weight: 600; 
+  }
+  
+  p {
+    font-size: 12px; 
+    color: var(--text-secondary); 
+    margin: 4px 0 0 0;
+    line-height: 1.4;
+  }
+
+  button {
+    background-color: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-weight: 500;
+    font-size: 12px;
+    width: 100%;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.2s;
+  }
+
+  button:hover { 
+    background-color: var(--blue-hover); 
+  }
+  
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .list { 
+    margin-top: 16px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+  }
+
+  .layer-item {
+    background: white;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .layer-item:hover { 
+    border-color: var(--blue); 
+  }
+
+  .layer-name { 
+    font-weight: 500; 
+    font-size: 12px; 
+    margin-bottom: 8px;
+    word-break: break-all;
+  }
+
+  .swatch-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .color-info { 
+    font-family: monospace; 
+    font-size: 11px; 
+    color: var(--text-primary); 
+    display: flex; 
+    align-items: center;
+    background-color: #F5F5F5;
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+
+  .color-swatch {
+    display: inline-block;
+    width: 12px; 
+    height: 12px; 
+    border-radius: 2px; 
+    border: 1px solid rgba(0,0,0,0.1);
+    margin-right: 6px; 
+  }
+  
+  .badge {
+     margin-left: auto;
+     font-size: 10px;
+     color: var(--text-secondary);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>Design Drift Audit</h2>
+  <p>Finds all hardcoded Fills and Strokes missing a linked Variable or Style configuration across the entire current page.</p>
+</div>
+
+<button id="run">Run Audit</button>
+
+<div class="list" id="results">
+</div>
+
+<script>
+  const runBtn = document.getElementById('run');
+  const resDiv = document.getElementById('results');
+
+  runBtn.onclick = () => {
+    runBtn.innerText = "Auditing canvas...";
+    runBtn.disabled = true;
+    resDiv.innerHTML = '';
+    // Send message to code.js (main thread)
+    parent.postMessage({ pluginMessage: { type: 'run-audit' } }, '*');
+  }
+
+  // Receive message back from code.js
+  onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+    
+    if (msg.type === 'audit-results') {
+      runBtn.innerText = "Run Audit Again";
+      runBtn.disabled = false;
+      
+      if (msg.data.length === 0) {
+        resDiv.innerHTML = `
+          <div class="empty-state">
+             <div style="font-size:24px;margin-bottom:8px;">✅</div>
+             No hardcoded colors found!<br>Design system is 100% compliant.
+          </div>`;
+        return;
+      }
+      
+      msg.data.forEach(layer => {
+        const item = document.createElement('div');
+        item.className = 'layer-item';
+        
+        // Clicking a layer tells Figma main thread to focus on it
+        item.onclick = () => {
+          parent.postMessage({ pluginMessage: { type: 'select-node', id: layer.id } }, '*');
+        };
+        
+        let swatches = '<div class="swatch-container">';
+        layer.colors.forEach(c => {
+           swatches += `
+            <div class="color-info">
+              <span class="color-swatch" style="background-color:${c.hex}"></span> 
+              ${c.hex}
+              <span class="badge">${c.type}</span>
+            </div>`;
+        });
+        swatches += '</div>';
+
+        item.innerHTML = `
+          <div class="layer-name">${layer.name}</div>
+          ${swatches}
+        `;
+        resDiv.appendChild(item);
+      });
+    }
+  }
+</script>
+
+</body>
+</html>
