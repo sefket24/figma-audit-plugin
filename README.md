@@ -28,4 +28,4 @@ Built as a standalone vanilla HTML/JS single-page application that queries the *
 5. Select the `manifest.json` file in this folder.
 6. The audit tool is now ready to scan!
 
-_Built to demonstrate technical Support Engineering capabilities regarding Figma's core extensibility layers._
+_Built to demonstrate technical Support Engineering capabilities regarding Figma's core extensibility layers — a hands-on exploration of the Figma Plugin API._
